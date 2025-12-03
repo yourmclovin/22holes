@@ -110,6 +110,11 @@ final class ARVC: UIViewController, ARSessionDelegate {
   }
 
   func session(_ session: ARSession, didUpdate frame: ARFrame) {
+    handleFrame(frame)
+  }
+
+  // Extracted for test seam
+  func handleFrame(_ frame: ARFrame) {
     guard let target = targetAnchor else { return }
     let cameraTransform = frame.camera.transform
     let camPos = SIMD3<Float>(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)
@@ -118,9 +123,9 @@ final class ARVC: UIViewController, ARSessionDelegate {
     let meters = Double(dist)
     let smoothed = smoothing.update(meters)
     let plays = playsLike(smoothed)
-    let accuracy = frame.camera.trackingState
+    let trackingState = frame.camera.trackingState
     DispatchQueue.main.async { [weak self] in
-      NotificationCenter.default.post(name: .ARRangefinderDidUpdate, object: nil, userInfo: ["meters": smoothed, "playsLike": plays, "trackingState": accuracy])
+      NotificationCenter.default.post(name: .ARRangefinderDidUpdate, object: nil, userInfo: ["meters": smoothed, "playsLike": plays, "trackingState": trackingState])
       self?.maybeHapticIfStable(current: smoothed)
     }
   }
@@ -143,7 +148,30 @@ final class ARVC: UIViewController, ARSessionDelegate {
     if hapticsEnabled { hapticsController = ARHaptics() }
   }
 
+  // MARK: - Test seams
+  // Programmatic helpers used only in tests to place anchors and inject frames
+  func placeTargetForTest(at transform: simd_float4x4) {
+    placeTarget(at: transform)
+  }
+
+  func test_receive(frame: ARFrame) {
+    handleFrame(frame)
+  }
+
   deinit {
     for obs in observers { NotificationCenter.default.removeObserver(obs) }
   }
 }
+
+final class ExponentialMovingAverage {
+  let alpha: Double
+  private(set) var lastValue: Double?
+  init(alpha: Double) { self.alpha = alpha }
+  func reset() { lastValue = nil }
+  func update(_ x: Double) -> Double {
+    if let y = lastValue { let v = alpha * x + (1 - alpha) * y; lastValue = v; return v }
+    lastValue = x; return x
+  }
+}
+
+extension Notification.Name { static let ARRangefinderDidUpdate = Notification.Name("ARRangefinderDidUpdate") }
