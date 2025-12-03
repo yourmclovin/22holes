@@ -28,16 +28,28 @@ public struct ARRangefinderView: UIViewControllerRepresentable {
 final class ARVC: UIViewController, ARSessionDelegate {
   var arView = ARView(frame: .zero)
   private var targetAnchor: AnchorEntity?
-  private var smoothing = ExponentialMovingAverage(alpha: 0.25)
+  private var smoothing: ExponentialMovingAverage
   private var cancellables = Set<AnyCancellable>()
   var playsLike: (Double) -> Double = { $0 }
   private var lastStableTime: Date?
   private var engine: CHHapticEngine?
-  private var hapticsEnabledObservation: Any?
+  private var observers: [Any] = []
 
   private var hapticsEnabled: Bool {
     UserDefaults.standard.bool(forKey: "ARRangefinderHapticsEnabled")
   }
+
+  private var smoothingAlpha: Double {
+    let v = UserDefaults.standard.double(forKey: "ARRangefinderSmoothingAlpha")
+    return v == 0 ? 0.25 : v
+  }
+
+  init() {
+    self.smoothing = ExponentialMovingAverage(alpha: UserDefaults.standard.double(forKey: "ARRangefinderSmoothingAlpha") == 0 ? 0.25 : UserDefaults.standard.double(forKey: "ARRangefinderSmoothingAlpha"))
+    super.init(nibName: nil, bundle: nil)
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -49,15 +61,20 @@ final class ARVC: UIViewController, ARSessionDelegate {
     arView.addGestureRecognizer(tap)
     prepareHaptics()
 
-    // Observe changes to haptics setting to start/stop engine
-    hapticsEnabledObservation = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+    // Observe changes to haptics and smoothing settings
+    let center = NotificationCenter.default
+    let obs1 = center.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
       guard let self = self else { return }
       if self.hapticsEnabled {
         try? self.engine?.start()
       } else {
         try? self.engine?.stop()
       }
+      // update smoothing alpha at runtime
+      let alpha = self.smoothingAlpha
+      self.smoothing = ExponentialMovingAverage(alpha: alpha)
     }
+    observers.append(obs1)
   }
 
   func startSession() {
@@ -132,7 +149,7 @@ final class ARVC: UIViewController, ARSessionDelegate {
   }
 
   deinit {
-    if let obs = hapticsEnabledObservation { NotificationCenter.default.removeObserver(obs) }
+    for obs in observers { NotificationCenter.default.removeObserver(obs) }
   }
 }
 
