@@ -18,13 +18,28 @@ This backlog is machine- and human-readable to allow any AI agent or engineer to
 
 ## Sprint 1 - Core shared models & services (High priority)
 
+Status: Completed (models + persistence + tests)
+
 Tasks (atomic):
 1.1 - Add SwiftData models: Course, Hole, Tee, Yardage, Hazard, Round, Shot, Club, ClubBag.
   - Required fields: id (UUID), name, coordinate (lat/lon), par, holeIndex, yardages (front/mid/back), hazards (type, coordinate), elevationMeters
   - Relationships: Course -> Hole (1..*), Hole -> Yardage/Hazard
 1.2 - PersistenceController: persistent container, in-memory option for tests & previews
-1.3 - LocationManager actor (already added) unit tests for lastLocation behavior
+1.3 - LocationManager actor (already added) unit tests for lastLocation behavior (in-progress)
 1.4 - DistanceCalculator + PlaysLikeCalculator stub (unit tests)
+
+Completed files:
+- Packages/GolfKit/Sources/GolfKit/SwiftDataModels.swift
+- Packages/GolfKit/Sources/GolfKit/ModelContainer+Persistence.swift
+- Packages/GolfKit/Sources/GolfKit/PlaysLikeCalculator.swift
+- Packages/GolfKit/Sources/GolfKit/LocationManager.swift
+- Packages/GolfKit/Tests/GolfKitTests/SwiftDataPersistenceTests.swift
+- Packages/GolfKit/Tests/GolfKitTests/DistanceTests.swift
+- Packages/GolfKit/Tests/GolfKitTests/ModelTests.swift
+
+Notes:
+- Sprint 1 implemented using SwiftData (iOS 17+/watchOS 10+).
+- Draft PR created: #1 (develop -> main)
 
 ## Sprint 2..10 (see roadmap in README)
 
