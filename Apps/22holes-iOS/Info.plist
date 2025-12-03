@@ -3,10 +3,8 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>com.yourmclovin.22holes</string>
-	<key>CFBundleName</key>
-	<string>22holes</string>
-	<key>MinimumOSVersion</key>
-	<string>17.0</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>22holes needs camera access to run the AR Rangefinder. Measurements are calculated locally and are not uploaded.</string>
 </dict>
 </plist>

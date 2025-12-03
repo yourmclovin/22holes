@@ -33,6 +33,11 @@ final class ARVC: UIViewController, ARSessionDelegate {
   var playsLike: (Double) -> Double = { $0 }
   private var lastStableTime: Date?
   private var engine: CHHapticEngine?
+  private var hapticsEnabledObservation: Any?
+
+  private var hapticsEnabled: Bool {
+    UserDefaults.standard.bool(forKey: "ARRangefinderHapticsEnabled")
+  }
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -43,6 +48,16 @@ final class ARVC: UIViewController, ARSessionDelegate {
     let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
     arView.addGestureRecognizer(tap)
     prepareHaptics()
+
+    // Observe changes to haptics setting to start/stop engine
+    hapticsEnabledObservation = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+      guard let self = self else { return }
+      if self.hapticsEnabled {
+        try? self.engine?.start()
+      } else {
+        try? self.engine?.stop()
+      }
+    }
   }
 
   func startSession() {
@@ -50,11 +65,13 @@ final class ARVC: UIViewController, ARSessionDelegate {
     config.planeDetection = [.horizontal]
     arView.session.run(config, options: [.resetTracking, .removeExistingAnchors])
     arView.session.delegate = self
+    if hapticsEnabled { try? engine?.start() }
   }
 
   func pauseSession() {
     arView.session.pause()
     arView.session.delegate = nil
+    try? engine?.stop()
   }
 
   @objc private func handleTap(_ g: UITapGestureRecognizer) {
@@ -95,6 +112,7 @@ final class ARVC: UIViewController, ARSessionDelegate {
   }
 
   private func maybeHapticIfStable(current: Double) {
+    guard hapticsEnabled else { return }
     let threshold = 0.3
     if let last = smoothing.lastValue, abs(current - last) < threshold {
       if lastStableTime == nil { lastStableTime = Date() }
@@ -110,7 +128,11 @@ final class ARVC: UIViewController, ARSessionDelegate {
   private func prepareHaptics() {
     guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
     engine = try? CHHapticEngine()
-    try? engine?.start()
+    if hapticsEnabled { try? engine?.start() }
+  }
+
+  deinit {
+    if let obs = hapticsEnabledObservation { NotificationCenter.default.removeObserver(obs) }
   }
 }
 
