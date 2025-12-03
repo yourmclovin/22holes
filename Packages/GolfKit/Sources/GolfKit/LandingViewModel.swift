@@ -10,6 +10,7 @@ public final class LandingViewModel: ObservableObject {
   @Published public var par: Int = 4
   @Published public var distanceToGreen: Double = 0
   @Published public var detectedHole: DetectedHole?
+  @Published public var recentlySwitched: Bool = false
 
   private let detector = AutoHoleDetector()
   private let locationManager: LocationManagerType
@@ -50,11 +51,39 @@ public final class LandingViewModel: ObservableObject {
     if let detection = await detector.update(location: location, heading: heading, holes: course.holes) {
       detectedHole = detection
       holeIndex = detection.holeIndex
+
+      // UI feedback
+      recentlySwitched = true
+      Task { @MainActor in
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        self.recentlySwitched = false
+      }
+
+      if shouldFireHaptics() {
+        fireSwitchHaptic()
+      }
+
       if course.holes.count >= holeIndex {
         let h = course.holes[holeIndex - 1]
         par = h.par
         distanceToGreen = DistanceCalculator.distanceMeters(from: location.coordinate, to: h.greenCoordinate.clCoordinate)
       }
     }
+  }
+
+  private func shouldFireHaptics() -> Bool {
+    // Read user preference from SDAppSettings if available; default true
+    // Fallback: true. Replace with actual fetch from SwiftData context as needed.
+    return true
+  }
+
+  private func fireSwitchHaptic() {
+    #if os(iOS)
+    let gen = UINotificationFeedbackGenerator()
+    gen.prepare()
+    gen.notificationOccurred(.success)
+    #elseif os(watchOS)
+    WKInterfaceDevice.current().play(.success)
+    #endif
   }
 }
