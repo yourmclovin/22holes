@@ -21,7 +21,7 @@ public struct ClubRecommendationCard: View {
       }
 
       if vm.candidates.isEmpty {
-        Text("No history yet — record a few shots for personalized suggestions.")
+        Text("No history yet  record a few shots for personalized suggestions.")
           .font(.caption)
           .foregroundColor(.secondary)
       } else {
@@ -38,7 +38,7 @@ public struct ClubRecommendationCard: View {
         }
         if vm.showWhy, let why = vm.whyExample {
           Divider()
-          Text("Why: nearest example — \(why.club) at \(Int(why.distance))m")
+          Text("Why: nearest example  \(why.club) at \(Int(why.distance))m")
             .font(.caption)
             .foregroundColor(.secondary)
         }
@@ -77,9 +77,11 @@ extension ClubRecommendationCard {
       }
       // compute a nearest example for the top candidate
       if let top = results.first {
-        // brute-force: fetch history from recommender via reflection is not exposed; instead request nearby candidate by querying a wider set
-        // For now we show score as proxy; in next iteration we'll expose a method to return representative example.
-        await MainActor.run { self.whyExample = (club: top.club, distance: distanceMeters) }
+        if let example = await recommender.representativeExample(forClub: top.club, forDistance: distanceMeters, windMps: windMps, lie: lie) {
+          await MainActor.run { self.whyExample = (club: example.club, distance: example.distanceMeters) }
+        } else {
+          await MainActor.run { self.whyExample = (club: top.club, distance: distanceMeters) }
+        }
       }
     }
   }
