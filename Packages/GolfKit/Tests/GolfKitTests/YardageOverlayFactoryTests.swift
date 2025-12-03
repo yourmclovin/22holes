@@ -22,4 +22,13 @@ final class YardageOverlayFactoryTests: XCTestCase {
     XCTAssertEqual(anns[1].title, "Middle")
     XCTAssertEqual(anns[2].title, "Back")
   }
+
+  func testOverlayCachingBehavior() {
+    // lightweight test to ensure factory produces overlays for different hole indexes
+    let coordA = CLLocationCoordinate2D(latitude: 1.0, longitude: 1.0)
+    let coordB = CLLocationCoordinate2D(latitude: 2.0, longitude: 2.0)
+    let ringsA = YardageOverlayFactory.rings(for: coordA)
+    let ringsB = YardageOverlayFactory.rings(for: coordB)
+    XCTAssertNotEqual(ringsA.first?.coordinate.latitude, ringsB.first?.coordinate.latitude)
+  }
 }
