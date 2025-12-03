@@ -1,0 +1,15 @@
+# Xcode
+.DS_Store
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace
+*.xcuserdatad
+# CocoaPods
+Pods/
+# SwiftPM
+.build/
+# Secrets
+Config/Secrets/*.plist
+Config/Secrets/*.p8

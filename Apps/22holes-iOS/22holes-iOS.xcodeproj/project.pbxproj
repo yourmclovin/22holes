@@ -1,0 +1,30 @@
+// !PMBXFILE
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+		/* Begin PBXProject section */
+		1D6058900D05DD3D006BFB54 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1300;
+			};
+			buildConfigurationList = 1D6058910D05DD3E006BFB54 /* Build configuration list for PBXProject */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			mainGroup = 1D6058920D05DD3F006BFB54;
+			productRefGroup = 1D6058930D05DD40006BFB54;
+			projectDirPath = "";
+			projectRoot = "";
+		};
+		/* End PBXProject section */
+		1D6058910D05DD3E006BFB54 /* Build configuration list for PBXProject */ = {isa = XCConfigurationList; buildConfigurations = (1D6058940D05DD41006BFB54, 1D6058950D05DD42006BFB54); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		1D6058940D05DD41006BFB54 = {isa = XCBuildConfiguration; buildSettings = { PRODUCT_NAME = "22holes-iOS"; }; name = Debug; };
+		1D6058950D05DD42006BFB54 = {isa = XCBuildConfiguration; buildSettings = { PRODUCT_NAME = "22holes-iOS"; }; name = Release; };
+		1D6058920D05DD3F006BFB54 = {isa = PBXGroup; children = ("22holes-iOS",); sourceTree = "<group>"; };
+		1D6058930D05DD40006BFB54 = {isa = PBXGroup; children = (); name = Products; sourceTree = "<group>"; };
+	};
+	rootObject = 1D6058900D05DD3D006BFB54 /* Project object */;
+}
