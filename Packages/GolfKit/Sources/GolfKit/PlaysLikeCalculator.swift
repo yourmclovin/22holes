@@ -2,10 +2,21 @@ import Foundation
 import CoreLocation
 
 public struct PlaysLikeCalculator {
-  /// Simple placeholder: adjusts distance by elevation delta (meters) using a heuristic:
-  /// 1 meter elevation ~= 0.8 meters playing distance (approx). This is tunable.
-  public static func playsLikeDistanceMeters(flatDistance: Double, elevationDeltaMeters: Double) -> Double {
-    let multiplierPerMeter = 0.8
-    return flatDistance + (elevationDeltaMeters * multiplierPerMeter)
+  /// Adjusts a base distance based on wind speed and relative bearing.
+  /// Simple model: effectiveDistance = distance - windEffect
+  /// windEffect = sign * distance * k * (windSpeed / 10) where sign = +1 for headwind, -1 for tailwind
+  /// k is tuning constant (e.g., 0.05)
+  public static func playsLikeDistance(baseDistance: Double, windSpeedMetersPerSecond: Double, windBearing: Double?, shotBearing: Double, k: Double = 0.05) -> Double {
+    guard windSpeedMetersPerSecond > 0, let wBearing = windBearing else { return baseDistance }
+    let angleDiff = angleBetween(bearing1: shotBearing, bearing2: wBearing)
+    // headwind when angleDiff near 180, tailwind near 0
+    let headwindFactor = cos(angleDiff * .pi / 180.0) * -1.0 // cos(180)= -1 -> headwindFactor = 1
+    let windEffect = baseDistance * k * (windSpeedMetersPerSecond / 10.0) * headwindFactor
+    return max(1.0, baseDistance + windEffect)
+  }
+
+  private static func angleBetween(bearing1: Double, bearing2: Double) -> Double {
+    let diff = abs(bearing1 - bearing2).truncatingRemainder(dividingBy: 360)
+    return diff > 180 ? 360 - diff : diff
   }
 }
