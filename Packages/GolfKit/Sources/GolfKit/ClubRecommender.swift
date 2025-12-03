@@ -77,4 +77,23 @@ public actor ClubRecommender {
             .prefix(limit)
         return Array(candidates)
     }
+
+    // Return a representative historic ShotRecord for a given club nearest to the query features.
+    // Useful for "why" explanations in the UI.
+    public func representativeExample(forClub club: String, forDistance meters: Double, windMps: Double = 0, lie: String? = nil) async -> ShotRecord? {
+        guard !history.isEmpty else { return nil }
+        let q = ShotRecord(club: club, distanceMeters: meters, windSpeedMps: windMps, windDirDeg: 0, lieType: lie)
+        let qfv = FeatureVector(from: q)
+        var best: (shot: ShotRecord, dist: Double)? = nil
+        for h in history where h.club == club {
+            let fv = FeatureVector(from: h)
+            let d2 = fv.distanceSquared(to: qfv, weights: weights)
+            if let b = best {
+                if d2 < b.dist { best = (shot: h, dist: d2) }
+            } else {
+                best = (shot: h, dist: d2)
+            }
+        }
+        return best?.shot
+    }
 }
