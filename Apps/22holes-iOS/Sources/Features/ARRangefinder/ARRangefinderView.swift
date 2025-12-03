@@ -12,6 +12,7 @@ public struct ARRangefinderView: UIViewControllerRepresentable {
   public func makeUIViewController(context: Context) -> ARVC {
     let vc = ARVC()
     vc.playsLike = playsLike
+    vc.hapticsController = ARHaptics()
     return vc
   }
 
@@ -32,8 +33,8 @@ final class ARVC: UIViewController, ARSessionDelegate {
   private var cancellables = Set<AnyCancellable>()
   var playsLike: (Double) -> Double = { $0 }
   private var lastStableTime: Date?
-  private var engine: CHHapticEngine?
   private var observers: [Any] = []
+  var hapticsController: HapticControlling?
 
   private var hapticsEnabled: Bool {
     UserDefaults.standard.bool(forKey: "ARRangefinderHapticsEnabled")
@@ -65,11 +66,7 @@ final class ARVC: UIViewController, ARSessionDelegate {
     let center = NotificationCenter.default
     let obs1 = center.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
       guard let self = self else { return }
-      if self.hapticsEnabled {
-        try? self.engine?.start()
-      } else {
-        try? self.engine?.stop()
-      }
+      if self.hapticsEnabled { self.hapticsController?.playStableHit() }
       // update smoothing alpha at runtime
       let alpha = self.smoothingAlpha
       self.smoothing = ExponentialMovingAverage(alpha: alpha)
@@ -82,13 +79,12 @@ final class ARVC: UIViewController, ARSessionDelegate {
     config.planeDetection = [.horizontal]
     arView.session.run(config, options: [.resetTracking, .removeExistingAnchors])
     arView.session.delegate = self
-    if hapticsEnabled { try? engine?.start() }
   }
 
   func pauseSession() {
     arView.session.pause()
     arView.session.delegate = nil
-    try? engine?.stop()
+    hapticsController?.stop()
   }
 
   @objc private func handleTap(_ g: UITapGestureRecognizer) {
@@ -122,8 +118,9 @@ final class ARVC: UIViewController, ARSessionDelegate {
     let meters = Double(dist)
     let smoothed = smoothing.update(meters)
     let plays = playsLike(smoothed)
+    let accuracy = frame.camera.trackingState
     DispatchQueue.main.async { [weak self] in
-      NotificationCenter.default.post(name: .ARRangefinderDidUpdate, object: nil, userInfo: ["meters": smoothed, "playsLike": plays])
+      NotificationCenter.default.post(name: .ARRangefinderDidUpdate, object: nil, userInfo: ["meters": smoothed, "playsLike": plays, "trackingState": accuracy])
       self?.maybeHapticIfStable(current: smoothed)
     }
   }
@@ -134,7 +131,7 @@ final class ARVC: UIViewController, ARSessionDelegate {
     if let last = smoothing.lastValue, abs(current - last) < threshold {
       if lastStableTime == nil { lastStableTime = Date() }
       if let start = lastStableTime, Date().timeIntervalSince(start) > 1.2 {
-        try? engine?.start()
+        hapticsController?.playStableHit()
         lastStableTime = Date()
       }
     } else {
@@ -143,25 +140,10 @@ final class ARVC: UIViewController, ARSessionDelegate {
   }
 
   private func prepareHaptics() {
-    guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
-    engine = try? CHHapticEngine()
-    if hapticsEnabled { try? engine?.start() }
+    if hapticsEnabled { hapticsController = ARHaptics() }
   }
 
   deinit {
     for obs in observers { NotificationCenter.default.removeObserver(obs) }
   }
 }
-
-final class ExponentialMovingAverage {
-  let alpha: Double
-  private(set) var lastValue: Double?
-  init(alpha: Double) { self.alpha = alpha }
-  func reset() { lastValue = nil }
-  func update(_ x: Double) -> Double {
-    if let y = lastValue { let v = alpha * x + (1 - alpha) * y; lastValue = v; return v }
-    lastValue = x; return x
-  }
-}
-
-extension Notification.Name { static let ARRangefinderDidUpdate = Notification.Name("ARRangefinderDidUpdate") }
