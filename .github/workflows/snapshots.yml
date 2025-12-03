@@ -1,0 +1,38 @@
+name: Snapshots
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  snapshots:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-derived-${{ github.sha }}
+
+      - name: Install dependencies
+        run: |
+          gem install bundler
+          bundle install
+
+      - name: Run snapshot tests
+        env:
+          SNAPSHOT_FAIL: ${{ secrets.SNAPSHOT_FAIL }}
+        run: |
+          set -o pipefail
+          fastlane ios_test
+
+      - name: Upload snapshot diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-diffs
+          path: ./fastlane/snapshots/diffs

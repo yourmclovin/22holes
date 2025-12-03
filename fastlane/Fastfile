@@ -1,0 +1,14 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Run unit + snapshot tests"
+  lane :ios_test do
+    run_tests(scheme: "22holes-iOS", devices: ["iPhone 15"], clean: true)
+    # run SnapshotTesting harness if configured
+  end
+
+  desc "Take screenshots locally for App Store"
+  lane :screenshots do
+    capture_screenshots
+  end
+end

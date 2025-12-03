@@ -1,17 +1,60 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ develop, main ]
+  pull_request:
+    branches: [ develop, main ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        xcode: ["15.4"]
+        target: ["unit", "packages"]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Swift
-        uses: fwal/setup-swift@v1
         with:
-          swift-version: '5.9'
-      - name: Build
-        run: swift build
+          fetch-depth: 0
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: |-
+            ~/.swiftpm
+            ~/.build
+          key: ${{ runner.os }}-spm-${{ matrix.xcode }}-${{ hashFiles('**/Package.resolved') }}
+
+      - name: Install Bundler and fastlane
+        run: |
+          gem install bundler
+          bundle install
+
+      - name: Run SwiftLint
+        continue-on-error: true
+        run: bundle exec swiftlint
+
       - name: Run tests
-        run: swift test
+        run: |
+          set -o pipefail
+          if [ "${{ matrix.target }}" = "unit" ]; then
+            swift test --enable-test-discovery | tee test-output.txt
+          else
+            swift test --package-path Packages/GolfKit | tee package-test-output.txt
+          fi
+        env:
+          CI: true
+
+      - name: Upload test logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-${{ matrix.target }}
+          path: |
+            test-output.txt
+            package-test-output.txt
