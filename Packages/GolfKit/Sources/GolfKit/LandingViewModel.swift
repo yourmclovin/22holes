@@ -1,6 +1,7 @@
 import Foundation
 import CoreLocation
 import SwiftUI
+import SwiftData
 
 @MainActor
 public final class LandingViewModel: ObservableObject {
@@ -15,9 +16,11 @@ public final class LandingViewModel: ObservableObject {
   private let detector = AutoHoleDetector()
   private let locationManager: LocationManagerType
   private var locationTask: Task<Void, Never>?
+  private var modelContext: ModelContext?
 
-  public init(locationManager: LocationManagerType = LocationManager.shared) {
+  public init(locationManager: LocationManagerType = LocationManager.shared, modelContext: ModelContext? = nil) {
     self.locationManager = locationManager
+    self.modelContext = modelContext
     self.playerCoordinate = locationManager.lastCoordinate
   }
 
@@ -72,9 +75,14 @@ public final class LandingViewModel: ObservableObject {
   }
 
   private func shouldFireHaptics() -> Bool {
-    // Read user preference from SDAppSettings if available; default true
-    // Fallback: true. Replace with actual fetch from SwiftData context as needed.
-    return true
+    // synchronous quick read: default true if missing
+    guard let ctx = modelContext else { return true }
+    do {
+      let settings = try ctx.fetch(SDAppSettings.self)
+      return settings.first?.enableAutoDetectHaptics ?? true
+    } catch {
+      return true
+    }
   }
 
   private func fireSwitchHaptic() {
